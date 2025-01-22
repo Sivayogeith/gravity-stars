@@ -4,7 +4,8 @@
   "main": "server.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon  --ext js server.mjs"
+    "serve": "nodemon  --ext js server.mjs",
+    "start": "node server.mjs"
   },
   "author": "Sage",
   "type": "module",
