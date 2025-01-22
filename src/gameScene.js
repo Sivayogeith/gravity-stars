@@ -10,12 +10,11 @@ class GameScene extends Phaser.Scene {
   preload() {
     this.collected_stars = 0;
 
-    this.load.image("sky", "assets/night-sky.png");
-    this.load.image("platform", "assets/platform.png");
-    this.load.image("ground", "assets/ground.png");
-    this.load.image("star", "assets/star.png");
-    this.load.image("bomb", "assets/bomb.png");
-    this.load.spritesheet("dude", "assets/dude.png", {
+    this.load.image("sky", "/night-sky.png");
+    this.load.image("platform", "/platform.png");
+    this.load.image("ground", "/ground.png");
+    this.load.image("star", "/star.png");
+    this.load.spritesheet("dude", "/dude.png", {
       frameWidth: 32,
       frameHeight: 48,
     });

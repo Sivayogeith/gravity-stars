@@ -1,16 +1,9 @@
 {
-  "name": "gravity-stars",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "serve": "nodemon  --ext js index.js",
-    "start": "index server.js"
+  "devDependencies": {
+    "parcel": "^2.13.3",
+    "parcel-reporter-static-files-copy": "^1.5.3"
   },
-  "author": "Sage",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "express": "^4.21.2"
+  "staticFiles": {
+    "staticPath": "assets"
   }
 }
