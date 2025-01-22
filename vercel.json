@@ -13,15 +13,15 @@
     },
     {
       "src": "/(.*)",
-      "dest": "src/game.js"
+      "dest": "/src/game.js"
     },
     {
       "src": "/(.*)",
-      "dest": "src/gameScene.js"
+      "dest": "/src/gameScene.js"
     },
     {
       "src": "/(.*)",
-      "dest": "src/titleScene.js"
+      "dest": "/src/titleScene.js"
     }
   ]
 }
