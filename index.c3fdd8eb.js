@@ -599,12 +599,19 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "modes", ()=>modes);
+parcelHelpers.export(exports, "DEFAULT_SCORE", ()=>DEFAULT_SCORE);
+parcelHelpers.export(exports, "saveScore", ()=>saveScore);
+parcelHelpers.export(exports, "loadScore", ()=>loadScore);
+parcelHelpers.export(exports, "clearSave", ()=>clearSave);
+parcelHelpers.export(exports, "loadSave", ()=>loadSave);
+parcelHelpers.export(exports, "setSave", ()=>setSave);
 var _gameSceneJs = require("./gameScene.js");
 var _gameSceneJsDefault = parcelHelpers.interopDefault(_gameSceneJs);
 var _optionSceneJs = require("./optionScene.js");
 var _optionSceneJsDefault = parcelHelpers.interopDefault(_optionSceneJs);
 var _titleSceneJs = require("./titleScene.js");
 var _titleSceneJsDefault = parcelHelpers.interopDefault(_titleSceneJs);
+var Buffer = require("4d4b58cc30366f48").Buffer;
 const config = {
     type: Phaser.AUTO,
     width: 1000,
@@ -619,51 +626,48 @@ const config = {
         }
     }
 };
+const game = new Phaser.Game(config);
+game.scene.add('gameScene', (0, _gameSceneJsDefault.default));
+game.scene.add('titleScene', (0, _titleSceneJsDefault.default));
+game.scene.add('optionsScene', (0, _optionSceneJsDefault.default));
+game.scene.start('titleScene');
 const modes = {
     1: "Easy",
     2: "Normal",
     3: "Hard",
     4: "Impossible"
 };
-const game = new Phaser.Game(config);
-game.scene.add('gameScene', (0, _gameSceneJsDefault.default));
-game.scene.add('titleScene', (0, _titleSceneJsDefault.default));
-game.scene.add('optionsScene', (0, _optionSceneJsDefault.default));
-game.scene.start('titleScene');
-
-},{"./gameScene.js":"by9SJ","./titleScene.js":"dqhez","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./optionScene.js":"9BOEd"}],"by9SJ":[function(require,module,exports,__globalThis) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "saveScore", ()=>saveScore);
-parcelHelpers.export(exports, "loadScore", ()=>loadScore);
-parcelHelpers.export(exports, "clearSave", ()=>clearSave);
-parcelHelpers.export(exports, "loadSave", ()=>loadSave);
-parcelHelpers.export(exports, "setSave", ()=>setSave);
-var _game = require("./game");
-var Buffer = require("c16d631e6de2a27f").Buffer;
+const DEFAULT_SCORE = {
+    1: [
+        0,
+        0
+    ],
+    2: [
+        0,
+        0
+    ],
+    3: [
+        0,
+        0
+    ],
+    4: [
+        0,
+        0
+    ]
+};
 const saveScore = (score)=>{
     setSave(Buffer.from(JSON.stringify(score)).toString("base64"));
 };
 const loadScore = ()=>{
     let score;
     if (!loadSave()) {
-        score = {
-            1: 0,
-            2: 0,
-            3: 0,
-            4: 0
-        };
+        score = DEFAULT_SCORE;
         saveScore(score);
     } else score = JSON.parse(Buffer.from(loadSave(), "base64").toString());
     return score;
 };
 const clearSave = ()=>{
-    saveScore({
-        1: 0,
-        2: 0,
-        3: 0,
-        4: 0
-    });
+    saveScore(DEFAULT_SCORE);
 };
 const loadSave = ()=>{
     return localStorage.getItem("saveFile");
@@ -671,200 +675,8 @@ const loadSave = ()=>{
 const setSave = (save)=>{
     localStorage.setItem("saveFile", save);
 };
-class GameScene extends Phaser.Scene {
-    constructor(){
-        super("gameScene");
-    }
-    init(data) {
-        this.velocityDelta = data.mode;
-    }
-    preload() {
-        this.collected_stars = 0;
-        this.load.image("sky", "/gravity-stars/night-sky.png");
-        this.load.image("platform", "/gravity-stars/platform.png");
-        this.load.image("ground", "/gravity-stars/ground.png");
-        this.load.image("star", "/gravity-stars/star.png");
-        this.load.spritesheet("dude", "/gravity-stars/dude.png", {
-            frameWidth: 32,
-            frameHeight: 48
-        });
-        this.score = loadScore();
-    }
-    animationsCreate() {
-        this.anims.create({
-            key: "left",
-            frames: this.anims.generateFrameNumbers("dude", {
-                start: 0,
-                end: 3
-            }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: "turn",
-            frames: [
-                {
-                    key: "dude",
-                    frame: 4
-                }
-            ],
-            frameRate: 20
-        });
-        this.anims.create({
-            key: "right",
-            frames: this.anims.generateFrameNumbers("dude", {
-                start: 5,
-                end: 8
-            }),
-            frameRate: 10,
-            repeat: -1
-        });
-    }
-    cursorCreate() {
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.velocityCursors = this.input.keyboard.addKeys("ONE,TWO,THREE,FOUR");
-        if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-80 * (this.velocityDelta + 4));
-            this.player.anims.play("left", true);
-        } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(80 * (this.velocityDelta + 4));
-            this.player.anims.play("right", true);
-        } else {
-            this.player.setVelocityX(0);
-            this.player.anims.play("turn");
-        }
-        // Y: one: 120, two: 240, 3: 360, 4: 480
-        // X: one: 400, two: 480, 3: 560, 4: 640
-        if (this.cursors.space.isDown) {
-            if (this.collected_stars >= 4) this.player.setDrag(25 * this.collected_stars);
-            else this.player.setDrag(125 - 25 * this.velocityDelta);
-        }
-        if (this.cursors.space.isUp) this.player.setDrag(0);
-        if (this.cursors.up.isDown) this.player.setVelocityY(-120 * this.velocityDelta);
-        if (this.cursors.down.isDown && !this.player.body.touching.down) this.player.setVelocityY(120 * this.velocityDelta);
-    }
-    collectStar(player, star) {
-        star.disableBody(true, true);
-        this.collected_stars += 1;
-        this.scoreText.setText("Stars: " + this.collected_stars);
-        if (this.collected_stars == 15) this.won();
-    }
-    won() {
-        this.titleButton.setText("Finish to Title!");
-        this.scoreText.setText("Planet's Gravity Restored!");
-        this.player.body.setGravityY(300);
-        this.titleButton.x = 650;
-        this.score[this.velocityDelta]++;
-        saveScore(this.score);
-        this.velocityDelta = 3;
-    }
-    reset() {
-        if (this.collected_stars !== 15) this.scene.restart();
-    }
-    create() {
-        this.add.image(450, 550, "sky");
-        const reset = this.add.text(900, 915, "Reset", {
-            fill: "#fff",
-            fontSize: "20px"
-        });
-        reset.depth = 10;
-        reset.setInteractive();
-        reset.on("pointerdown", ()=>this.scene.restart());
-        this.titleButton = this.add.text(775, 915, "Title", {
-            fill: "#fff",
-            fontSize: "20px"
-        });
-        this.titleButton.depth = 10;
-        this.titleButton.setInteractive();
-        this.titleButton.on("pointerdown", ()=>{
-            this.scene.stop("gameScene");
-            this.scene.start("titleScene");
-        });
-        this.level = this.add.text(10, 915, (0, _game.modes)[this.velocityDelta] + " Level!", {
-            fill: "#fff",
-            fontSize: "20px"
-        });
-        this.level.depth = 10;
-        // Platforms!
-        this.platforms = this.physics.add.staticGroup();
-        this.ground = this.physics.add.staticGroup();
-        this.ground.create(500, 925, "ground");
-        this.platforms.create(600, 750, "platform");
-        this.platforms.create(50, 550, "platform");
-        this.platforms.create(850, 325, "platform");
-        this.platforms.create(1050, 100, "platform");
-        // End
-        // Player!
-        this.player = this.physics.add.sprite(100, 650, "dude");
-        this.player.setBounce(0.1);
-        this.player.setCollideWorldBounds(true);
-        this.player.body.setGravityY(-300);
-        // this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.player, this.ground, ()=>this.reset(this.player));
-        this.physics.add.collider(this.player, this.platforms, ()=>this.reset(this.player));
-        // End
-        // Stars!
-        this.stars = this.physics.add.group({
-            key: "star",
-            repeat: 14,
-            setXY: {
-                x: 12,
-                y: 0,
-                stepX: 70
-            }
-        });
-        // this.stars.children.iterate(function (child) {
-        //   child.setBounceY(Phaser.Math.FloatBetween(0.2, 0.4));
-        // });
-        this.physics.add.collider(this.stars, this.platforms);
-        this.physics.add.collider(this.stars, this.ground);
-        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
-        this.scoreText = this.add.text(16, 16, "Stars: 0", {
-            fontSize: "32px",
-            fill: "#fff",
-            backgroundColor: "#060d29"
-        });
-        this.scoreText.setPadding(10);
-        // End
-        this.animationsCreate();
-    }
-    update() {
-        this.cursorCreate();
-    }
-}
-exports.default = GameScene;
 
-},{"./game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","c16d631e6de2a27f":"fCgem"}],"gkKU3":[function(require,module,exports,__globalThis) {
-exports.interopDefault = function(a) {
-    return a && a.__esModule ? a : {
-        default: a
-    };
-};
-exports.defineInteropFlag = function(a) {
-    Object.defineProperty(a, '__esModule', {
-        value: true
-    });
-};
-exports.exportAll = function(source, dest) {
-    Object.keys(source).forEach(function(key) {
-        if (key === 'default' || key === '__esModule' || Object.prototype.hasOwnProperty.call(dest, key)) return;
-        Object.defineProperty(dest, key, {
-            enumerable: true,
-            get: function() {
-                return source[key];
-            }
-        });
-    });
-    return dest;
-};
-exports.export = function(dest, destName, get) {
-    Object.defineProperty(dest, destName, {
-        enumerable: true,
-        get: get
-    });
-};
-
-},{}],"fCgem":[function(require,module,exports,__globalThis) {
+},{"4d4b58cc30366f48":"fCgem","./gameScene.js":"by9SJ","./optionScene.js":"9BOEd","./titleScene.js":"dqhez","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"fCgem":[function(require,module,exports,__globalThis) {
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -2460,14 +2272,294 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
     buffer[offset + i - d] |= s * 128;
 };
 
-},{}],"dqhez":[function(require,module,exports,__globalThis) {
+},{}],"by9SJ":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-var _gameScene = require("./gameScene");
+var _game = require("./game");
+class GameScene extends Phaser.Scene {
+    constructor(){
+        super("gameScene");
+    }
+    init(data) {
+        this.velocityDelta = data.mode;
+    }
+    preload() {
+        this.collected_stars = 0;
+        this.load.image("sky", "/gravity-stars/night-sky.png");
+        this.load.image("platform", "/gravity-stars/platform.png");
+        this.load.image("ground", "/gravity-stars/ground.png");
+        this.load.image("star", "/gravity-stars/star.png");
+        this.load.spritesheet("dude", "/gravity-stars/dude.png", {
+            frameWidth: 32,
+            frameHeight: 48
+        });
+        this.score = (0, _game.loadScore)();
+    }
+    animationsCreate() {
+        this.anims.create({
+            key: "left",
+            frames: this.anims.generateFrameNumbers("dude", {
+                start: 0,
+                end: 3
+            }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: "turn",
+            frames: [
+                {
+                    key: "dude",
+                    frame: 4
+                }
+            ],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: "right",
+            frames: this.anims.generateFrameNumbers("dude", {
+                start: 5,
+                end: 8
+            }),
+            frameRate: 10,
+            repeat: -1
+        });
+    }
+    cursorCreate() {
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.velocityCursors = this.input.keyboard.addKeys("ONE,TWO,THREE,FOUR");
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-80 * (this.velocityDelta + 4));
+            this.player.anims.play("left", true);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(80 * (this.velocityDelta + 4));
+            this.player.anims.play("right", true);
+        } else {
+            this.player.setVelocityX(0);
+            this.player.anims.play("turn");
+        }
+        // Y: one: 120, two: 240, 3: 360, 4: 480
+        // X: one: 400, two: 480, 3: 560, 4: 640
+        if (this.cursors.space.isDown) {
+            if (this.collected_stars >= 4) this.player.setDrag(25 * this.collected_stars);
+            else this.player.setDrag(125 - 25 * this.velocityDelta);
+        }
+        if (this.cursors.space.isUp) this.player.setDrag(0);
+        if (this.cursors.up.isDown) this.player.setVelocityY(-120 * this.velocityDelta);
+        if (this.cursors.down.isDown && !this.player.body.touching.down) this.player.setVelocityY(120 * this.velocityDelta);
+    }
+    collectStar(player, star) {
+        star.disableBody(true, true);
+        this.collected_stars += 1;
+        this.scoreText.setText("Stars: " + this.collected_stars);
+        if (this.collected_stars == 15) this.won();
+    }
+    won() {
+        this.titleButton.setText("Finish to Title!");
+        this.scoreText.setText("Planet's Gravity Restored!");
+        this.player.body.setGravityY(300);
+        this.titleButton.x = 650;
+        this.score[this.velocityDelta][0]++;
+        (0, _game.saveScore)(this.score);
+        this.velocityDelta = 3;
+    }
+    reset() {
+        if (this.collected_stars !== 15) {
+            this.scene.restart();
+            this.score[this.velocityDelta][1]++;
+            (0, _game.saveScore)(this.score);
+        }
+    }
+    create() {
+        this.add.image(450, 550, "sky");
+        const reset = this.add.text(900, 915, "Reset", {
+            fill: "#fff",
+            fontSize: "20px"
+        });
+        reset.depth = 10;
+        reset.setInteractive();
+        reset.on("pointerdown", ()=>this.scene.restart());
+        this.titleButton = this.add.text(775, 915, "Title", {
+            fill: "#fff",
+            fontSize: "20px"
+        });
+        this.titleButton.depth = 10;
+        this.titleButton.setInteractive();
+        this.titleButton.on("pointerdown", ()=>{
+            this.scene.stop("gameScene");
+            this.scene.start("titleScene");
+        });
+        this.level = this.add.text(10, 915, (0, _game.modes)[this.velocityDelta] + " Level!", {
+            fill: "#fff",
+            fontSize: "20px"
+        });
+        this.level.depth = 10;
+        // Platforms!
+        this.platforms = this.physics.add.staticGroup();
+        this.ground = this.physics.add.staticGroup();
+        this.ground.create(500, 925, "ground");
+        this.platforms.create(600, 750, "platform");
+        this.platforms.create(50, 550, "platform");
+        this.platforms.create(850, 325, "platform");
+        this.platforms.create(1050, 100, "platform");
+        // End
+        // Player!
+        this.player = this.physics.add.sprite(100, 650, "dude");
+        this.player.setBounce(0.1);
+        this.player.setCollideWorldBounds(true);
+        this.player.body.setGravityY(-300);
+        // this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.collider(this.player, this.ground, ()=>this.reset(this.player));
+        this.physics.add.collider(this.player, this.platforms, ()=>this.reset(this.player));
+        // End
+        // Stars!
+        this.stars = this.physics.add.group({
+            key: "star",
+            repeat: 14,
+            setXY: {
+                x: 12,
+                y: 0,
+                stepX: 70
+            }
+        });
+        // this.stars.children.iterate(function (child) {
+        //   child.setBounceY(Phaser.Math.FloatBetween(0.2, 0.4));
+        // });
+        this.physics.add.collider(this.stars, this.platforms);
+        this.physics.add.collider(this.stars, this.ground);
+        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+        this.scoreText = this.add.text(16, 16, "Stars: 0", {
+            fontSize: "32px",
+            fill: "#fff",
+            backgroundColor: "#060d29"
+        });
+        this.scoreText.setPadding(10);
+        // End
+        this.animationsCreate();
+    }
+    update() {
+        this.cursorCreate();
+    }
+}
+exports.default = GameScene;
+
+},{"./game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gkKU3":[function(require,module,exports,__globalThis) {
+exports.interopDefault = function(a) {
+    return a && a.__esModule ? a : {
+        default: a
+    };
+};
+exports.defineInteropFlag = function(a) {
+    Object.defineProperty(a, '__esModule', {
+        value: true
+    });
+};
+exports.exportAll = function(source, dest) {
+    Object.keys(source).forEach(function(key) {
+        if (key === 'default' || key === '__esModule' || Object.prototype.hasOwnProperty.call(dest, key)) return;
+        Object.defineProperty(dest, key, {
+            enumerable: true,
+            get: function() {
+                return source[key];
+            }
+        });
+    });
+    return dest;
+};
+exports.export = function(dest, destName, get) {
+    Object.defineProperty(dest, destName, {
+        enumerable: true,
+        get: get
+    });
+};
+
+},{}],"9BOEd":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _game = require("./game");
+class OptionsScene extends Phaser.Scene {
+    constructor(){
+        super("optionsScene");
+    }
+    preload() {
+        this.load.image("background", "/gravity-stars/background.png");
+        this.score = (0, _game.loadScore)();
+        this.saveFile = (0, _game.loadSave)();
+    }
+    back() {
+        this.scene.stop("optionsScene");
+        this.scene.start("titleScene");
+    }
+    create() {
+        const bg = this.add.image(450, 550, "background");
+        this.add.text(350, 250, "Options and Stats!", {
+            fontSize: "32px"
+        });
+        this.add.text(350, 350, `Stats:`, {
+            fill: "#fff",
+            fontSize: "25px"
+        });
+        this.recordText = `
+    Easy: Won: ${this.score[1][0]}, Died: ${this.score[1][1]}
+
+    Normal: Won: ${this.score[2][0]}, Died: ${this.score[2][1]}
+    
+    Hard: Won: ${this.score[3][0]}, Died: ${this.score[3][1]}
+    
+    Impossible: Won: ${this.score[4][0]}, Died: ${this.score[4][1]}`;
+        const record = this.add.text(350, 375, this.recordText, {
+            fill: "#fff",
+            fontSize: "20px"
+        });
+        this.add.text(350, 600, `Options:`, {
+            fill: "#fff",
+            fontSize: "25px"
+        });
+        this.add.text(375, 650, `Clear Save`, {
+            fill: "#5399f5",
+            fontSize: "20px"
+        }).setInteractive().on("pointerdown", ()=>{
+            const warn = confirm("Do you REALLY want to clear your save?");
+            if (warn) {
+                const lastwarn = confirm("Last chance, wiping your save irreversible!");
+                if (lastwarn) {
+                    (0, _game.clearSave)();
+                    this.saveFile = (0, _game.loadSave)();
+                    this.score = (0, _game.loadScore)();
+                    record.setText(this.recordText);
+                }
+            }
+        });
+        this.add.text(550, 650, `Copy and Enter Save`, {
+            fill: "#5399f5",
+            fontSize: "20px"
+        }).setInteractive().on("pointerdown", ()=>{
+            const save = prompt("Please enter your save file!", this.saveFile);
+            if (save) {
+                (0, _game.setSave)(save);
+                this.saveFile = (0, _game.loadSave)();
+                this.score = (0, _game.loadScore)();
+                record.setText(this.recordText);
+            }
+        });
+        const title = this.add.text(10, 915, "Title", {
+            fill: "#fff",
+            fontSize: "20px"
+        });
+        title.setInteractive();
+        title.on("pointerdown", ()=>this.back());
+    }
+}
+exports.default = OptionsScene;
+
+},{"./game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"dqhez":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _game = require("./game");
 class TitleScene extends Phaser.Scene {
     constructor(){
         super("titleScene");
-        this.score = (0, _gameScene.loadScore)();
+        this.score = (0, _game.loadScore)();
     }
     preload() {
         this.load.image("background", "/gravity-stars/background.png");
@@ -2520,77 +2612,6 @@ class TitleScene extends Phaser.Scene {
 }
 exports.default = TitleScene;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./gameScene":"by9SJ"}],"9BOEd":[function(require,module,exports,__globalThis) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _gameScene = require("./gameScene");
-class OptionsScene extends Phaser.Scene {
-    constructor(){
-        super("optionsScene");
-    }
-    preload() {
-        this.load.image("background", "/gravity-stars/background.png");
-        this.score = (0, _gameScene.loadScore)();
-        this.saveFile = (0, _gameScene.loadSave)();
-    }
-    back() {
-        this.scene.stop("optionsScene");
-        this.scene.start("titleScene");
-    }
-    create() {
-        const bg = this.add.image(450, 550, "background");
-        this.add.text(350, 250, "Options and Stats!", {
-            fontSize: "32px"
-        });
-        this.add.text(350, 350, `Stats:`, {
-            fill: "#fff",
-            fontSize: "25px"
-        });
-        const record = this.add.text(375, 400, `Easy: ${this.score[1]}\n\nNormal: ${this.score[2]}\n\nHard: ${this.score[3]}\n\nImpossible: ${this.score[4]}`, {
-            fill: "#fff",
-            fontSize: "20px"
-        });
-        this.add.text(350, 600, `Options:`, {
-            fill: "#fff",
-            fontSize: "25px"
-        });
-        this.add.text(375, 650, `Clear Save`, {
-            fill: "#5399f5",
-            fontSize: "20px"
-        }).setInteractive().on("pointerdown", ()=>{
-            const warn = confirm("Do you REALLY want to clear your save?");
-            if (warn) {
-                const lastwarn = confirm("Last chance, wiping your save irreversible!");
-                if (lastwarn) {
-                    (0, _gameScene.clearSave)();
-                    this.saveFile = (0, _gameScene.loadSave)();
-                    this.score = (0, _gameScene.loadScore)();
-                    record.setText(`Easy: ${this.score[1]}\n\nNormal: ${this.score[2]}\n\nHard: ${this.score[3]}\n\nImpossible: ${this.score[4]}`);
-                }
-            }
-        });
-        this.add.text(550, 650, `Copy and Enter Save`, {
-            fill: "#5399f5",
-            fontSize: "20px"
-        }).setInteractive().on("pointerdown", ()=>{
-            const save = prompt("Please enter your save file!", this.saveFile);
-            if (save) {
-                (0, _gameScene.setSave)(save);
-                this.saveFile = (0, _gameScene.loadSave)();
-                this.score = (0, _gameScene.loadScore)();
-                record.setText(`Easy: ${this.score[1]}\n\nNormal: ${this.score[2]}\n\nHard: ${this.score[3]}\n\nImpossible: ${this.score[4]}`);
-            }
-        });
-        const title = this.add.text(10, 915, "Title", {
-            fill: "#fff",
-            fontSize: "20px"
-        });
-        title.setInteractive();
-        title.on("pointerdown", ()=>this.back());
-    }
-}
-exports.default = OptionsScene;
-
-},{"./gameScene":"by9SJ","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["b85s8","g9e9u"], "g9e9u", "parcelRequire94c2")
+},{"./game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["b85s8","g9e9u"], "g9e9u", "parcelRequire94c2")
 
 //# sourceMappingURL=index.c3fdd8eb.js.map
