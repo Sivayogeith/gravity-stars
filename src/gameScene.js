@@ -1,3 +1,5 @@
+import { modes, loadScore, saveScore } from "./game";
+
 class GameScene extends Phaser.Scene {
   constructor() {
     super("gameScene");
@@ -10,14 +12,16 @@ class GameScene extends Phaser.Scene {
   preload() {
     this.collected_stars = 0;
 
-    this.load.image("sky", "/night-sky.png");
-    this.load.image("platform", "/platform.png");
-    this.load.image("ground", "/ground.png");
-    this.load.image("star", "/star.png");
-    this.load.spritesheet("dude", "/dude.png", {
+    this.load.image("sky", "/gravity-stars/night-sky.png");
+    this.load.image("platform", "/gravity-stars/platform.png");
+    this.load.image("ground", "/gravity-stars/ground.png");
+    this.load.image("star", "/gravity-stars/star.png");
+    this.load.spritesheet("dude", "/gravity-stars/dude.png", {
       frameWidth: 32,
       frameHeight: 48,
     });
+
+    this.score = loadScore();
   }
 
   animationsCreate() {
@@ -89,15 +93,27 @@ class GameScene extends Phaser.Scene {
     this.collected_stars += 1;
     this.scoreText.setText("Stars: " + this.collected_stars);
 
-    if (this.collected_stars == 15) {
-      this.titleButton.setText("Finish to Title!")
-      this.titleButton.x = 650
-  }
+    if (this.collected_stars == 15) this.won();
   }
 
-  reset(player) {
+  won() {
+    this.titleButton.setText("Finish to Title!");
+    this.scoreText.setText("Planet's Gravity Restored!");
+    this.player.body.setGravityY(300);
+    this.titleButton.x = 650;
+
+    this.score[this.velocityDelta][0]++;
+    saveScore(this.score);
+
+    this.velocityDelta = 3;
+  }
+
+  reset() {
     if (this.collected_stars !== 15) {
       this.scene.restart();
+
+      this.score[this.velocityDelta][1]++;
+      saveScore(this.score);
     }
   }
 
@@ -123,11 +139,17 @@ class GameScene extends Phaser.Scene {
       this.scene.start("titleScene");
     });
 
+    this.level = this.add.text(10, 915, modes[this.velocityDelta] + " Level!", {
+      fill: "#fff",
+      fontSize: "20px",
+    });
+    this.level.depth = 10;
+
     // Platforms!
     this.platforms = this.physics.add.staticGroup();
     this.ground = this.physics.add.staticGroup();
 
-    this.ground.create(500, 925, "ground")
+    this.ground.create(500, 925, "ground");
 
     this.platforms.create(600, 750, "platform");
     this.platforms.create(50, 550, "platform");
@@ -176,7 +198,10 @@ class GameScene extends Phaser.Scene {
     this.scoreText = this.add.text(16, 16, "Stars: 0", {
       fontSize: "32px",
       fill: "#fff",
+      backgroundColor: "#060d29",
     });
+
+    this.scoreText.setPadding(10);
     // End
     this.animationsCreate();
   }

@@ -1,9 +1,18 @@
 {
+  "scripts": {
+    "deploy": "gh-pages -d dist",
+    "build": "rm -rf .parcel-cache && npx parcel build src/index.html --public-url /gravity-stars",
+    "dev": "npx parcel src/index.html --public-url /"
+  },
   "devDependencies": {
+    "buffer": "^6.0.3",
     "parcel": "^2.13.3",
     "parcel-reporter-static-files-copy": "^1.5.3"
   },
   "staticFiles": {
     "staticPath": "assets"
+  },
+  "dependencies": {
+    "gh-pages": "^6.3.0"
   }
 }
