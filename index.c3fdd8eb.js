@@ -605,17 +605,31 @@ parcelHelpers.export(exports, "loadScore", ()=>loadScore);
 parcelHelpers.export(exports, "clearSave", ()=>clearSave);
 parcelHelpers.export(exports, "loadSave", ()=>loadSave);
 parcelHelpers.export(exports, "setSave", ()=>setSave);
-var _gameSceneJs = require("./gameScene.js");
+parcelHelpers.export(exports, "meteorsToBeat", ()=>meteorsToBeat);
+parcelHelpers.export(exports, "buttonColor", ()=>buttonColor);
+parcelHelpers.export(exports, "textColor", ()=>textColor);
+var _gameSceneJs = require("./scenes/gameScene.js");
 var _gameSceneJsDefault = parcelHelpers.interopDefault(_gameSceneJs);
-var _optionSceneJs = require("./optionScene.js");
+var _optionSceneJs = require("./scenes/optionScene.js");
 var _optionSceneJsDefault = parcelHelpers.interopDefault(_optionSceneJs);
-var _titleSceneJs = require("./titleScene.js");
+var _pauseSceneJs = require("./scenes/pauseScene.js");
+var _pauseSceneJsDefault = parcelHelpers.interopDefault(_pauseSceneJs);
+var _storySceneJs = require("./scenes/storyScene.js");
+var _storySceneJsDefault = parcelHelpers.interopDefault(_storySceneJs);
+var _titleSceneJs = require("./scenes/titleScene.js");
 var _titleSceneJsDefault = parcelHelpers.interopDefault(_titleSceneJs);
+var _meteorResultSceneJs = require("./scenes/meteorResultScene.js");
+var _meteorResultSceneJsDefault = parcelHelpers.interopDefault(_meteorResultSceneJs);
+var _endingSceneJs = require("./scenes/endingScene.js");
+var _endingSceneJsDefault = parcelHelpers.interopDefault(_endingSceneJs);
 var Buffer = require("4d4b58cc30366f48").Buffer;
 const config = {
     type: Phaser.AUTO,
-    width: 1000,
-    height: 950,
+    scale: {
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 1000,
+        height: 949
+    },
     physics: {
         default: "arcade",
         arcade: {
@@ -627,15 +641,31 @@ const config = {
     }
 };
 const game = new Phaser.Game(config);
-game.scene.add('gameScene', (0, _gameSceneJsDefault.default));
-game.scene.add('titleScene', (0, _titleSceneJsDefault.default));
-game.scene.add('optionsScene', (0, _optionSceneJsDefault.default));
-game.scene.start('titleScene');
+game.scene.add("gameScene", (0, _gameSceneJsDefault.default));
+game.scene.add("titleScene", (0, _titleSceneJsDefault.default));
+game.scene.add("optionsScene", (0, _optionSceneJsDefault.default));
+game.scene.add("storyScene", (0, _storySceneJsDefault.default));
+game.scene.add("meteorResultScene", (0, _meteorResultSceneJsDefault.default));
+game.scene.add("pauseScene", (0, _pauseSceneJsDefault.default));
+game.scene.add("endingScene", (0, _endingSceneJsDefault.default));
+game.scene.start("titleScene");
 const modes = {
-    1: "Easy",
-    2: "Normal",
-    3: "Hard",
-    4: "Impossible"
+    1: [
+        "Small",
+        35000
+    ],
+    2: [
+        "Medium",
+        30000
+    ],
+    3: [
+        "Large",
+        25000
+    ],
+    4: [
+        "Giant",
+        20000
+    ]
 };
 const DEFAULT_SCORE = {
     1: [
@@ -675,8 +705,11 @@ const loadSave = ()=>{
 const setSave = (save)=>{
     localStorage.setItem("saveFile", save);
 };
+const meteorsToBeat = (score)=>Object.entries(score).filter(([key, meteor])=>meteor[0] === 0).map(([key])=>key);
+const buttonColor = "#5399f5";
+const textColor = "#fff";
 
-},{"4d4b58cc30366f48":"fCgem","./gameScene.js":"by9SJ","./optionScene.js":"9BOEd","./titleScene.js":"dqhez","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"fCgem":[function(require,module,exports,__globalThis) {
+},{"4d4b58cc30366f48":"fCgem","./scenes/gameScene.js":"feWvF","./scenes/optionScene.js":"8BDP5","./scenes/pauseScene.js":"7wS8A","./scenes/storyScene.js":"5fV0P","./scenes/titleScene.js":"9sSac","./scenes/meteorResultScene.js":"5F2hI","./scenes/endingScene.js":"WywG1","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"fCgem":[function(require,module,exports,__globalThis) {
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -2272,62 +2305,36 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
     buffer[offset + i - d] |= s * 128;
 };
 
-},{}],"by9SJ":[function(require,module,exports,__globalThis) {
+},{}],"feWvF":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-var _game = require("./game");
+var _game = require("../game");
 class GameScene extends Phaser.Scene {
     constructor(){
         super("gameScene");
     }
     init(data) {
+        this.mode = data.mode;
         this.velocityDelta = data.mode;
     }
     preload() {
-        this.collected_stars = 0;
+        this.hasWon = false;
+        this.collectedStars = 0;
+        this.secondsLeft = (0, _game.modes)[this.velocityDelta][1];
         this.load.image("sky", "/gravity-stars/night-sky.png");
         this.load.image("platform", "/gravity-stars/platform.png");
         this.load.image("ground", "/gravity-stars/ground.png");
         this.load.image("star", "/gravity-stars/star.png");
+        this.load.animation("animationJson", "/gravity-stars/data/animations.json");
         this.load.spritesheet("dude", "/gravity-stars/dude.png", {
             frameWidth: 32,
             frameHeight: 48
         });
         this.score = (0, _game.loadScore)();
     }
-    animationsCreate() {
-        this.anims.create({
-            key: "left",
-            frames: this.anims.generateFrameNumbers("dude", {
-                start: 0,
-                end: 3
-            }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: "turn",
-            frames: [
-                {
-                    key: "dude",
-                    frame: 4
-                }
-            ],
-            frameRate: 20
-        });
-        this.anims.create({
-            key: "right",
-            frames: this.anims.generateFrameNumbers("dude", {
-                start: 5,
-                end: 8
-            }),
-            frameRate: 10,
-            repeat: -1
-        });
-    }
     cursorCreate() {
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.velocityCursors = this.input.keyboard.addKeys("ONE,TWO,THREE,FOUR");
+        this.optionCursors = this.input.keyboard.addKeys("P,R");
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-80 * (this.velocityDelta + 4));
             this.player.anims.play("left", true);
@@ -2341,63 +2348,87 @@ class GameScene extends Phaser.Scene {
         // Y: one: 120, two: 240, 3: 360, 4: 480
         // X: one: 400, two: 480, 3: 560, 4: 640
         if (this.cursors.space.isDown) {
-            if (this.collected_stars >= 4) this.player.setDrag(25 * this.collected_stars);
+            if (this.collectedStars >= 4) this.player.setDrag(25 * this.collectedStars);
             else this.player.setDrag(125 - 25 * this.velocityDelta);
         }
         if (this.cursors.space.isUp) this.player.setDrag(0);
         if (this.cursors.up.isDown) this.player.setVelocityY(-120 * this.velocityDelta);
         if (this.cursors.down.isDown && !this.player.body.touching.down) this.player.setVelocityY(120 * this.velocityDelta);
+        if (this.optionCursors.P.isDown) {
+            this.scene.pause("gameScene");
+            this.scene.launch("pauseScene");
+        }
+        if (this.optionCursors.R.isDown) this.scene.restart();
     }
     collectStar(player, star) {
         star.disableBody(true, true);
-        this.collected_stars += 1;
-        this.scoreText.setText("Stars: " + this.collected_stars);
-        if (this.collected_stars == 15) this.won();
+        this.collectedStars += 1;
+        this.scoreText.setText("Stars: " + this.collectedStars);
+        if (this.collectedStars == 15) this.won();
     }
     won() {
-        this.titleButton.setText("Finish to Title!");
+        this.score[this.mode][0]++;
+        (0, _game.saveScore)(this.score);
+        this.hasWon = true;
+        this.timedEvent.paused = true;
+        this.titleButton.setText("Finish!");
         this.scoreText.setText("Planet's Gravity Restored!");
         this.player.body.setGravityY(300);
-        this.titleButton.x = 650;
-        this.score[this.velocityDelta][0]++;
-        (0, _game.saveScore)(this.score);
         this.velocityDelta = 3;
     }
     reset() {
-        if (this.collected_stars !== 15) {
-            this.scene.restart();
-            this.score[this.velocityDelta][1]++;
+        if (this.collectedStars !== 15) {
+            this.score[this.mode][1]++;
             (0, _game.saveScore)(this.score);
+            this.scene.stop("gameScene");
+            this.scene.start("meteorResultScene", {
+                won: false,
+                secondsLeft: 0,
+                starsLeft: 15 - this.collectedStars,
+                mode: this.mode
+            });
         }
     }
     create() {
         this.add.image(450, 550, "sky");
         const reset = this.add.text(900, 915, "Reset", {
-            fill: "#fff",
+            fill: (0, _game.textColor),
             fontSize: "20px"
         });
         reset.depth = 10;
         reset.setInteractive();
         reset.on("pointerdown", ()=>this.scene.restart());
         this.titleButton = this.add.text(775, 915, "Title", {
-            fill: "#fff",
+            fill: (0, _game.textColor),
             fontSize: "20px"
         });
         this.titleButton.depth = 10;
         this.titleButton.setInteractive();
         this.titleButton.on("pointerdown", ()=>{
-            this.scene.stop("gameScene");
-            this.scene.start("titleScene");
+            if (!this.hasWon) {
+                this.scene.stop("gameScene");
+                this.scene.start("titleScene");
+            } else if (this.mode == 4 && (0, _game.meteorsToBeat)(this.score).length == 0) {
+                this.scene.stop("gameScene");
+                this.scene.start("endingScene");
+            } else {
+                this.scene.stop("gameScene");
+                this.scene.start("meteorResultScene", {
+                    won: true,
+                    secondsLeft: this.secondsLeft,
+                    starsLeft: 0,
+                    mode: this.mode
+                });
+            }
         });
-        this.level = this.add.text(10, 915, (0, _game.modes)[this.velocityDelta] + " Level!", {
-            fill: "#fff",
+        this.level = this.add.text(10, 915, (0, _game.modes)[this.velocityDelta][0] + " Level!", {
+            fill: (0, _game.textColor),
             fontSize: "20px"
         });
         this.level.depth = 10;
         // Platforms!
         this.platforms = this.physics.add.staticGroup();
-        this.ground = this.physics.add.staticGroup();
-        this.ground.create(500, 925, "ground");
+        this.platforms.create(500, 925, "ground");
         this.platforms.create(600, 750, "platform");
         this.platforms.create(50, 550, "platform");
         this.platforms.create(850, 325, "platform");
@@ -2408,8 +2439,6 @@ class GameScene extends Phaser.Scene {
         this.player.setBounce(0.1);
         this.player.setCollideWorldBounds(true);
         this.player.body.setGravityY(-300);
-        // this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.player, this.ground, ()=>this.reset(this.player));
         this.physics.add.collider(this.player, this.platforms, ()=>this.reset(this.player));
         // End
         // Stars!
@@ -2430,20 +2459,30 @@ class GameScene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
         this.scoreText = this.add.text(16, 16, "Stars: 0", {
             fontSize: "32px",
-            fill: "#fff",
+            fill: (0, _game.textColor),
             backgroundColor: "#060d29"
         });
         this.scoreText.setPadding(10);
         // End
-        this.animationsCreate();
+        // Timer
+        this.timedEvent = this.time.delayedCall((0, _game.modes)[this.velocityDelta][1], this.reset, [], this);
+        this.timer = this.add.text(375, 915, "You have: ", {
+            fontSize: "20px",
+            fill: "#ff5338"
+        });
+    // End
     }
     update() {
         this.cursorCreate();
+        if (!this.hasWon) {
+            this.secondsLeft = this.timedEvent.getRemainingSeconds().toFixed(0);
+            this.timer.setText(`You have: ${this.timedEvent.getRemainingSeconds().toFixed(0)} seconds`);
+        }
     }
 }
 exports.default = GameScene;
 
-},{"./game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gkKU3":[function(require,module,exports,__globalThis) {
+},{"../game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gkKU3":[function(require,module,exports,__globalThis) {
 exports.interopDefault = function(a) {
     return a && a.__esModule ? a : {
         default: a
@@ -2473,10 +2512,10 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"9BOEd":[function(require,module,exports,__globalThis) {
+},{}],"8BDP5":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-var _game = require("./game");
+var _game = require("../game");
 class OptionsScene extends Phaser.Scene {
     constructor(){
         super("optionsScene");
@@ -2490,13 +2529,27 @@ class OptionsScene extends Phaser.Scene {
         this.scene.stop("optionsScene");
         this.scene.start("titleScene");
     }
+    startStoryline() {
+        this.scene.stop("titleScene");
+        this.scene.start("storyScene");
+    }
+    updateRecord() {
+        this.record.setText(`
+    Easy: Won: ${this.score[1][0]}, Died: ${this.score[1][1]}
+
+    Normal: Won: ${this.score[2][0]}, Died: ${this.score[2][1]}
+    
+    Hard: Won: ${this.score[3][0]}, Died: ${this.score[3][1]}
+    
+    Impossible: Won: ${this.score[4][0]}, Died: ${this.score[4][1]}`);
+    }
     create() {
-        const bg = this.add.image(450, 550, "background");
+        this.add.image(450, 550, "background");
         this.add.text(350, 250, "Options and Stats!", {
             fontSize: "32px"
         });
         this.add.text(350, 350, `Stats:`, {
-            fill: "#fff",
+            fill: (0, _game.textColor),
             fontSize: "25px"
         });
         this.recordText = `
@@ -2507,16 +2560,16 @@ class OptionsScene extends Phaser.Scene {
     Hard: Won: ${this.score[3][0]}, Died: ${this.score[3][1]}
     
     Impossible: Won: ${this.score[4][0]}, Died: ${this.score[4][1]}`;
-        const record = this.add.text(350, 375, this.recordText, {
-            fill: "#fff",
+        this.record = this.add.text(350, 375, this.recordText, {
+            fill: (0, _game.textColor),
             fontSize: "20px"
         });
         this.add.text(350, 600, `Options:`, {
-            fill: "#fff",
+            fill: (0, _game.textColor),
             fontSize: "25px"
         });
         this.add.text(375, 650, `Clear Save`, {
-            fill: "#5399f5",
+            fill: (0, _game.buttonColor),
             fontSize: "20px"
         }).setInteractive().on("pointerdown", ()=>{
             const warn = confirm("Do you REALLY want to clear your save?");
@@ -2526,12 +2579,12 @@ class OptionsScene extends Phaser.Scene {
                     (0, _game.clearSave)();
                     this.saveFile = (0, _game.loadSave)();
                     this.score = (0, _game.loadScore)();
-                    record.setText(this.recordText);
+                    this.updateRecord();
                 }
             }
         });
         this.add.text(550, 650, `Copy and Enter Save`, {
-            fill: "#5399f5",
+            fill: (0, _game.buttonColor),
             fontSize: "20px"
         }).setInteractive().on("pointerdown", ()=>{
             const save = prompt("Please enter your save file!", this.saveFile);
@@ -2539,11 +2592,24 @@ class OptionsScene extends Phaser.Scene {
                 (0, _game.setSave)(save);
                 this.saveFile = (0, _game.loadSave)();
                 this.score = (0, _game.loadScore)();
-                record.setText(this.recordText);
+                this.updateRecord();
             }
         });
+        this.add.text(375, 700, `Toggle Music`, {
+            fill: (0, _game.buttonColor),
+            fontSize: "20px"
+        }).setInteractive().on("pointerdown", ()=>{
+            if (this.sound.isPlaying("theme")) this.sound.pauseAll();
+            else this.sound.resumeAll();
+        });
+        const story = this.add.text(875, 915, "Storyline", {
+            fill: (0, _game.buttonColor),
+            fontSize: "20px"
+        });
+        story.setInteractive();
+        story.on("pointerdown", ()=>this.startStoryline());
         const title = this.add.text(10, 915, "Title", {
-            fill: "#fff",
+            fill: (0, _game.buttonColor),
             fontSize: "20px"
         });
         title.setInteractive();
@@ -2552,17 +2618,82 @@ class OptionsScene extends Phaser.Scene {
 }
 exports.default = OptionsScene;
 
-},{"./game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"dqhez":[function(require,module,exports,__globalThis) {
+},{"../game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"7wS8A":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-var _game = require("./game");
+var _game = require("../game");
+class PauseScene extends Phaser.Scene {
+    constructor(){
+        super("pauseScene");
+    }
+    back() {
+        this.scene.stop("pauseScene");
+        this.scene.start("gameScene");
+    }
+    create() {
+        const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 2;
+        const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 2;
+        this.add.image(450, 550, "background");
+        this.add.text(screenCenterX, screenCenterY - 30, "Paused!", {
+            fill: (0, _game.textColor),
+            fontSize: "50px"
+        }).setOrigin(0.5);
+        this.add.text(screenCenterX - 20, screenCenterY + 30, "Back", {
+            fill: (0, _game.buttonColor),
+            fontSize: "32px"
+        }).setInteractive().on("pointerdown", ()=>this.back()).setOrigin(0.5);
+    }
+}
+exports.default = PauseScene;
+
+},{"../game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5fV0P":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _game = require("../game");
+class StoryScene extends Phaser.Scene {
+    constructor(){
+        super("storyScene");
+    }
+    back() {
+        this.scene.stop("storyScene");
+        this.scene.start("titleScene");
+    }
+    startOptions() {
+        this.scene.stop("storyScene");
+        this.scene.start("optionsScene");
+    }
+    create() {
+        this.add.image(450, 550, "background");
+        this.add.text(400, 250, "Storyline!", {
+            fontSize: "32px"
+        });
+        this.add.text(250, 350, `Your friend's grandfather Dennis Hope is looking for a successor to his moon, as your friend doesn't care he came to you.\n\nTo be a great successor you need to take care when a gravity defying meteor hits the moon. Four of them is about to hit your planet; collect all the stars to reset the gravity to save your planet but do it QUICKLY.\n\nYou need save your planet against Small, Medium, Large, Giant meteors. For each meteor, the time and braking power decreases and your speed increases.\n\nProve your self to conquer the MOON!`, {
+            fill: (0, _game.textColor)
+        }).setWordWrapWidth(600);
+        this.add.text(10, 915, "Options and Stats", {
+            fill: (0, _game.buttonColor),
+            fontSize: "20px"
+        }).setInteractive().on("pointerdown", ()=>this.startOptions());
+        this.add.text(915, 915, "Title", {
+            fill: (0, _game.buttonColor),
+            fontSize: "20px"
+        }).setInteractive().on("pointerdown", ()=>this.back());
+    }
+}
+exports.default = StoryScene;
+
+},{"../game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9sSac":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _game = require("../game");
 class TitleScene extends Phaser.Scene {
     constructor(){
         super("titleScene");
-        this.score = (0, _game.loadScore)();
     }
     preload() {
+        this.score = (0, _game.loadScore)();
         this.load.image("background", "/gravity-stars/background.png");
+        this.load.audio("theme", "/gravity-stars/theme_full.ogg");
     }
     startGame(mode) {
         this.scene.stop("titleScene");
@@ -2574,44 +2705,168 @@ class TitleScene extends Phaser.Scene {
         this.scene.stop("titleScene");
         this.scene.start("optionsScene");
     }
+    startStoryline() {
+        this.scene.stop("titleScene");
+        this.scene.start("storyScene");
+    }
     create() {
-        const bg = this.add.image(450, 550, "background");
-        const text = this.add.text(400, 250, "Gravity Stars!", {
+        if (!this.sound.get("theme") && !this.sound.isPlaying("theme")) this.music = this.sound.play("theme", {
+            loop: true
+        });
+        this.add.image(450, 550, "background");
+        this.add.text(400, 250, "Gravity Stars!", {
             fontSize: "32px"
         });
-        const easy = this.add.text(325, 350, "Easy!", {
-            fill: "#5399f5"
+        const positions = [
+            325,
+            425,
+            550,
+            650
+        ];
+        positions.forEach((x, index)=>{
+            let disabled = false;
+            if (index + 1 !== 1) {
+                if (this.score[index][0] == 0) disabled = true;
+            }
+            const color = disabled ? "#8a929c" : (0, _game.buttonColor);
+            this.add.text(x, 350, `${(0, _game.modes)[index + 1][0]}!`, {
+                fill: color
+            }).setInteractive().on("pointerdown", ()=>{
+                if (!disabled) this.startGame(index + 1);
+            });
         });
-        easy.setInteractive();
-        easy.on("pointerdown", ()=>this.startGame(1));
-        const normal = this.add.text(425, 350, "Normal!", {
-            fill: "#5399f5"
-        });
-        normal.setInteractive();
-        normal.on("pointerdown", ()=>this.startGame(2));
-        const hard = this.add.text(550, 350, "Hard!", {
-            fill: "#5399f5"
-        });
-        hard.setInteractive();
-        hard.on("pointerdown", ()=>this.startGame(3));
-        const impossible = this.add.text(650, 350, "Impossible!", {
-            fill: "#5399f5"
-        });
-        impossible.setInteractive();
-        impossible.on("pointerdown", ()=>this.startGame(4));
-        const desc = this.add.text(250, 400, "You are a purple dude with a jetpack.\nDo NOT touch the ground; Collect all stars to win!\n\nEach level increases the speed and decreases braking power.\nEvery star you collect gives you more braking power.\n\nArrow Keys - control\nSpace - brakes\n\nStory: Your planet's gravity is reversed,\nyou need to save your planet quickly by collecting all the stars!", {
-            fill: "#fff"
-        });
+        this.add.text(250, 400, "You are a purple dude with a jetpack.\nDo NOT touch the ground; Collect all stars to win that meteor! Finish all meteors to conquer the MOON!\n\nEach meteor increases the speed and decreases braking power.\nEvery star you collect gives you more braking power.\n\nArrow Keys - Control\nSpace - Brakes\nP - Pause\nR - Reset\n\n\nCredits:\n  Game Author and Art - themeowingsage\n  Music - Flo\n  Player Art - Phaser", {
+            fill: (0, _game.textColor)
+        }).setWordWrapWidth(600);
         const options = this.add.text(10, 915, "Options and Stats", {
-            fill: "#fff",
+            fill: (0, _game.buttonColor),
             fontSize: "20px"
         });
         options.setInteractive();
         options.on("pointerdown", ()=>this.startOptions());
+        const story = this.add.text(875, 915, "Storyline", {
+            fill: (0, _game.buttonColor),
+            fontSize: "20px"
+        });
+        story.setInteractive();
+        story.on("pointerdown", ()=>this.startStoryline());
     }
 }
 exports.default = TitleScene;
 
-},{"./game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["b85s8","g9e9u"], "g9e9u", "parcelRequire94c2")
+},{"../game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5F2hI":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _game = require("../game");
+class MeteorResultScene extends Phaser.Scene {
+    constructor(){
+        super("meteorResultScene");
+    }
+    init(data) {
+        this.won = data.won;
+        this.secondsLeft = data.secondsLeft;
+        this.starsLeft = data.starsLeft;
+        this.mode = data.mode;
+    }
+    startTitle() {
+        this.scene.stop("meteorResultScene");
+        this.scene.start("titleScene");
+    }
+    startNewGame() {
+        this.scene.stop("meteorResultScene");
+        this.scene.start("gameScene", {
+            mode: this.won ? this.mode + 1 : this.mode
+        });
+    }
+    create() {
+        this.add.image(450, 550, "background");
+        this.add.text(350, 350, this.won ? "YOU WON!" : "You lost :P", {
+            fill: (0, _game.textColor),
+            fontSize: "45px"
+        });
+        this.add.text(375, 425, "Title", {
+            fill: (0, _game.buttonColor),
+            fontSize: "20px"
+        }).setInteractive().on("pointerdown", ()=>this.startTitle());
+        this.add.text(475, 425, this.won ? "Next Meteor" : "Play Again", {
+            fill: (0, _game.buttonColor),
+            fontSize: "20px"
+        }).setInteractive().on("pointerdown", ()=>this.startNewGame());
+        this.add.text(375, 475, this.won ? `with JUST ${this.secondsLeft} seconds left!` : `you had ${this.starsLeft} stars to collect.`, {
+            fill: (0, _game.textColor),
+            fontSize: "20px"
+        });
+    }
+}
+exports.default = MeteorResultScene;
+
+},{"../game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"WywG1":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _game = require("../game");
+class EndingScene extends Phaser.Scene {
+    constructor(){
+        super("endingScene");
+    }
+    preload() {
+        this.nearRocket = false;
+        this.load.image("ending-background", "/gravity-stars/ending-background.png");
+        this.load.image("moon", "/gravity-stars/moon.png");
+        this.load.image("rocket", "/gravity-stars/rocket.png");
+        this.load.image("flag", "/gravity-stars/flag.png");
+    }
+    startTitle() {
+        this.scene.stop("endingScene");
+        this.scene.start("titleScene");
+    }
+    create() {
+        this.add.image(500, 450, "ending-background");
+        this.add.text(125, 150, "Moon successfully conquered!", {
+            fill: (0, _game.textColor),
+            fontSize: "45px"
+        });
+        this.add.text(175, 225, `A impressed Dennis Hope hands you the moon's papers and his rocket, but now the U.S. government is coming for it- Part 2 is yet to come.`, {
+            fill: (0, _game.textColor),
+            fontSize: "20px"
+        }).setWordWrapWidth(600);
+        this.moon = this.physics.add.staticImage(450, 675, "moon");
+        this.rocket = this.physics.add.staticImage(325, 422, "rocket");
+        this.flag = this.physics.add.staticImage(575, 425, "flag");
+        this.add.text(275, 650, "Press G at the rocket to leave!", {
+            fill: (0, _game.textColor),
+            fontSize: "20px"
+        });
+        this.player = this.physics.add.sprite(500, 425, "dude");
+        this.player.setBounce(0.8);
+        this.player.setCollideWorldBounds(true);
+        this.player.body.setGravityY(50);
+        this.physics.add.collider(this.player, this.moon);
+    }
+    update() {
+        if (this.physics.overlapCirc(325, 422, 10).length > 0) this.nearRocket = true;
+        else this.nearRocket = false;
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.optionCursors = this.input.keyboard.addKeys("G");
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-560);
+            this.player.anims.play("left", true);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(560);
+            this.player.anims.play("right", true);
+        } else {
+            this.player.setVelocityX(0);
+            this.player.anims.play("turn");
+        }
+        if (this.optionCursors.G.isDown && this.nearRocket) {
+            this.scene.stop("endingScene");
+            this.scene.start("titleScene");
+        }
+        if (this.cursors.up.isDown) this.player.setVelocityY(-360);
+        if (this.cursors.down.isDown && !this.player.body.touching.down) this.player.setVelocityY(360);
+    }
+}
+exports.default = EndingScene;
+
+},{"../game":"g9e9u","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["b85s8","g9e9u"], "g9e9u", "parcelRequire94c2")
 
 //# sourceMappingURL=index.c3fdd8eb.js.map
