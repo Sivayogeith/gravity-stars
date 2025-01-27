@@ -1,4 +1,4 @@
-import { modes, loadScore, saveScore } from "./game";
+import { modes, loadScore, saveScore, textColor, meteorsToBeat } from "../game";
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -6,17 +6,21 @@ class GameScene extends Phaser.Scene {
   }
 
   init(data) {
+    this.mode = data.mode;
     this.velocityDelta = data.mode;
   }
 
   preload() {
-    this.collected_stars = 0;
+    this.hasWon = false;
+    this.collectedStars = 0;
+    this.secondsLeft = modes[this.velocityDelta][1];
 
-    this.load.image("sky", "/gravity-stars/night-sky.png");
-    this.load.image("platform", "/gravity-stars/platform.png");
-    this.load.image("ground", "/gravity-stars/ground.png");
-    this.load.image("star", "/gravity-stars/star.png");
-    this.load.spritesheet("dude", "/gravity-stars/dude.png", {
+    this.load.image("sky", "/night-sky.png");
+    this.load.image("platform", "/platform.png");
+    this.load.image("ground", "/ground.png");
+    this.load.image("star", "/star.png");
+    this.load.animation("animationJson", "/data/animations.json");
+    this.load.spritesheet("dude", "/dude.png", {
       frameWidth: 32,
       frameHeight: 48,
     });
@@ -24,31 +28,10 @@ class GameScene extends Phaser.Scene {
     this.score = loadScore();
   }
 
-  animationsCreate() {
-    this.anims.create({
-      key: "left",
-      frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 3 }),
-      frameRate: 10,
-      repeat: -1,
-    });
-
-    this.anims.create({
-      key: "turn",
-      frames: [{ key: "dude", frame: 4 }],
-      frameRate: 20,
-    });
-
-    this.anims.create({
-      key: "right",
-      frames: this.anims.generateFrameNumbers("dude", { start: 5, end: 8 }),
-      frameRate: 10,
-      repeat: -1,
-    });
-  }
-
   cursorCreate() {
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.velocityCursors = this.input.keyboard.addKeys("ONE,TWO,THREE,FOUR");
+    this.optionCursors = this.input.keyboard.addKeys("P,R");
+
     if (this.cursors.left.isDown) {
       this.player.setVelocityX(-80 * (this.velocityDelta + 4));
 
@@ -67,8 +50,8 @@ class GameScene extends Phaser.Scene {
     // X: one: 400, two: 480, 3: 560, 4: 640
 
     if (this.cursors.space.isDown) {
-      if (this.collected_stars >= 4) {
-        this.player.setDrag(25 * this.collected_stars);
+      if (this.collectedStars >= 4) {
+        this.player.setDrag(25 * this.collectedStars);
       } else {
         this.player.setDrag(125 - 25 * this.velocityDelta);
       }
@@ -85,35 +68,51 @@ class GameScene extends Phaser.Scene {
     if (this.cursors.down.isDown && !this.player.body.touching.down) {
       this.player.setVelocityY(120 * this.velocityDelta);
     }
+
+    if (this.optionCursors.P.isDown) {
+      this.scene.pause("gameScene");
+      this.scene.launch("pauseScene");
+    }
+
+    if (this.optionCursors.R.isDown) {
+      this.scene.restart();
+    }
   }
 
   collectStar(player, star) {
     star.disableBody(true, true);
 
-    this.collected_stars += 1;
-    this.scoreText.setText("Stars: " + this.collected_stars);
+    this.collectedStars += 1;
+    this.scoreText.setText("Stars: " + this.collectedStars);
 
-    if (this.collected_stars == 15) this.won();
+    if (this.collectedStars == 15) this.won();
   }
 
   won() {
-    this.titleButton.setText("Finish to Title!");
+    this.score[this.mode][0]++;
+    saveScore(this.score);
+
+    this.hasWon = true;
+    this.timedEvent.paused = true;
+    this.titleButton.setText("Finish!");
     this.scoreText.setText("Planet's Gravity Restored!");
     this.player.body.setGravityY(300);
-    this.titleButton.x = 650;
-
-    this.score[this.velocityDelta][0]++;
-    saveScore(this.score);
 
     this.velocityDelta = 3;
   }
 
   reset() {
-    if (this.collected_stars !== 15) {
-      this.scene.restart();
-
-      this.score[this.velocityDelta][1]++;
+    if (this.collectedStars !== 15) {
+      this.score[this.mode][1]++;
       saveScore(this.score);
+
+      this.scene.stop("gameScene");
+      this.scene.start("meteorResultScene", {
+        won: false,
+        secondsLeft: 0,
+        starsLeft: 15 - this.collectedStars,
+        mode: this.mode,
+      });
     }
   }
 
@@ -121,7 +120,7 @@ class GameScene extends Phaser.Scene {
     this.add.image(450, 550, "sky");
 
     const reset = this.add.text(900, 915, "Reset", {
-      fill: "#fff",
+      fill: textColor,
       fontSize: "20px",
     });
     reset.depth = 10;
@@ -129,27 +128,46 @@ class GameScene extends Phaser.Scene {
     reset.on("pointerdown", () => this.scene.restart());
 
     this.titleButton = this.add.text(775, 915, "Title", {
-      fill: "#fff",
+      fill: textColor,
       fontSize: "20px",
     });
     this.titleButton.depth = 10;
     this.titleButton.setInteractive();
     this.titleButton.on("pointerdown", () => {
-      this.scene.stop("gameScene");
-      this.scene.start("titleScene");
+      if (!this.hasWon) {
+        this.scene.stop("gameScene");
+        this.scene.start("titleScene");
+      } else {
+        if (this.mode == 4 && meteorsToBeat(this.score).length == 0) {
+          this.scene.stop("gameScene");
+          this.scene.start("endingScene");
+        } else {
+          this.scene.stop("gameScene");
+          this.scene.start("meteorResultScene", {
+            won: true,
+            secondsLeft: this.secondsLeft,
+            starsLeft: 0,
+            mode: this.mode,
+          });
+        }
+      }
     });
 
-    this.level = this.add.text(10, 915, modes[this.velocityDelta] + " Level!", {
-      fill: "#fff",
-      fontSize: "20px",
-    });
+    this.level = this.add.text(
+      10,
+      915,
+      modes[this.velocityDelta][0] + " Level!",
+      {
+        fill: textColor,
+        fontSize: "20px",
+      }
+    );
     this.level.depth = 10;
 
     // Platforms!
     this.platforms = this.physics.add.staticGroup();
-    this.ground = this.physics.add.staticGroup();
 
-    this.ground.create(500, 925, "ground");
+    this.platforms.create(500, 925, "ground");
 
     this.platforms.create(600, 750, "platform");
     this.platforms.create(50, 550, "platform");
@@ -165,10 +183,6 @@ class GameScene extends Phaser.Scene {
 
     this.player.body.setGravityY(-300);
 
-    // this.physics.add.collider(this.player, this.platforms);
-    this.physics.add.collider(this.player, this.ground, () =>
-      this.reset(this.player)
-    );
     this.physics.add.collider(this.player, this.platforms, () =>
       this.reset(this.player)
     );
@@ -197,17 +211,36 @@ class GameScene extends Phaser.Scene {
 
     this.scoreText = this.add.text(16, 16, "Stars: 0", {
       fontSize: "32px",
-      fill: "#fff",
+      fill: textColor,
       backgroundColor: "#060d29",
     });
 
     this.scoreText.setPadding(10);
     // End
-    this.animationsCreate();
+
+    // Timer
+    this.timedEvent = this.time.delayedCall(
+      modes[this.velocityDelta][1],
+      this.reset,
+      [],
+      this
+    );
+
+    this.timer = this.add.text(375, 915, "You have: ", {
+      fontSize: "20px",
+      fill: "#ff5338",
+    });
+    // End
   }
 
   update() {
     this.cursorCreate();
+    if (!this.hasWon) {
+      this.secondsLeft = this.timedEvent.getRemainingSeconds().toFixed(0);
+      this.timer.setText(
+        `You have: ${this.timedEvent.getRemainingSeconds().toFixed(0)} seconds`
+      );
+    }
   }
 }
 
